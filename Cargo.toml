@@ -7,7 +7,7 @@ edition = "2021"
 resolver = "2"
 members = [
     "wgpu",
-    "wgpu-hal",
+    "wgpu-types",
 ]
 
 [dependencies]

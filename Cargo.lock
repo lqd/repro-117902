@@ -154,15 +154,14 @@ version = "0.1.0"
 dependencies = [
  "parking_lot",
  "thiserror",
- "wgpu-hal",
+ "wgpu-types",
 ]
 
 [[package]]
-name = "wgpu-hal"
+name = "wgpu-types"
 version = "0.1.0"
 dependencies = [
  "bitflags 2.4.1",
- "thiserror",
 ]
 
 [[package]]

@@ -1,23 +1,24 @@
-pub use wgpu_hal::wgt::Backends;
-pub use wgpu_hal::wgt::TextureDimension;
-pub use wgpu_hal::wgt::TextureFormat;
-pub use wgpu_hal::wgt::TextureUsages;
+pub use wgpu_types::Backends;
+pub use wgpu_types::TextureDimension;
+pub use wgpu_types::TextureFormat;
+pub use wgpu_types::TextureUsages;
 
 pub type Label<'a> = Option<&'a str>;
 pub type TextureDescriptor<'a> =
-    wgpu_hal::wgt::TextureDescriptor<Label<'a>, &'a [wgpu_hal::wgt::TextureFormat]>;
+    wgpu_types::TextureDescriptor<Label<'a>, &'a [wgpu_types::TextureFormat]>;
 
 pub fn device_create_texture(
     global: &crate::core::global::Global<crate::core::identity::IdentityManagerFactory>,
     device: &crate::core::id::DeviceId,
     desc: &TextureDescriptor,
 ) -> crate::core::id::TextureId {
-    let wgt_desc = desc.map_label_and_view_formats(|l| l.map(std::borrow::Cow::Borrowed), |v| v.to_vec());
+    let wgt_desc =
+        desc.map_label_and_view_formats(|l| l.map(std::borrow::Cow::Borrowed), |v| v.to_vec());
     let (id, _) = match device.backend() {
-        wgpu_hal::wgt::Backend::Metal => {
+        wgpu_types::Backend::Metal => {
             global.device_create_texture::<crate::core::api::Metal>(*device, &wgt_desc, ())
         }
-        wgpu_hal::wgt::Backend::Gl => {
+        wgpu_types::Backend::Gl => {
             global.device_create_texture::<crate::core::api::Gles>(*device, &wgt_desc, ())
         }
         other => {
@@ -77,9 +78,9 @@ pub mod core {
             use crate::core::hal_api::HalApi;
             use crate::core::resource::{self};
             use thiserror::Error;
-            use wgpu_hal::wgt::TextureFormat;
+            use wgpu_types::TextureFormat;
             pub struct Device<A: HalApi> {
-                pub(crate) features: wgpu_hal::wgt::Features,
+                pub(crate) features: wgpu_types::Features,
                 _marker: std::marker::PhantomData<A>,
             }
             #[derive(Clone, Debug, Error)]
@@ -88,7 +89,7 @@ pub mod core {
             impl<A: HalApi> Device<A> {
                 pub(crate) fn require_features(
                     &self,
-                    feature: wgpu_hal::wgt::Features,
+                    feature: wgpu_types::Features,
                 ) -> Result<(), MissingFeatures> {
                     if self.features.contains(feature) {
                         Ok(())
@@ -114,14 +115,14 @@ pub mod core {
                 pub(super) fn describe_format_features(
                     &self,
                     format: TextureFormat,
-                ) -> Result<wgpu_hal::wgt::TextureFormatFeatures, MissingFeatures> {
+                ) -> Result<wgpu_types::TextureFormatFeatures, MissingFeatures> {
                     self.require_features(format.required_features())?;
                     Ok(format.guaranteed_format_features(self.features))
                 }
             }
         }
         pub(crate) use resource::Device;
-        pub(crate) type DeviceDescriptor<'a> = wgpu_hal::wgt::DeviceDescriptor<Label<'a>>;
+        pub(crate) type DeviceDescriptor<'a> = wgpu_types::DeviceDescriptor<Label<'a>>;
         #[derive(Clone, Debug, Error)]
         pub enum DeviceError {
             #[error("Parent device is invalid")]
@@ -129,7 +130,7 @@ pub mod core {
         }
         #[derive(Clone, Debug, Error)]
         #[error("Features {0:?} are required but not enabled on the device")]
-        pub struct MissingFeatures(pub wgpu_hal::wgt::Features);
+        pub struct MissingFeatures(pub wgpu_types::Features);
     }
     pub mod global {
         use crate::core::hub::Hubs;
@@ -142,7 +143,7 @@ pub mod core {
             pub(crate) hubs: Hubs<G>,
         }
         impl<G: GlobalIdentityHandlerFactory> Global<G> {
-            pub fn new(factory: G, _instance_desc: wgpu_hal::wgt::InstanceDescriptor) -> Self {
+            pub fn new(factory: G, _instance_desc: wgpu_types::InstanceDescriptor) -> Self {
                 Self {
                     surfaces: Registry::without_backend(&factory),
                     hubs: Hubs::new(&factory),
@@ -154,25 +155,25 @@ pub mod core {
         use crate::core::global::Global;
         use crate::core::hub::Hub;
         use crate::core::identity::GlobalIdentityHandlerFactory;
-        use wgpu_hal::wgt::Backend;
-        pub trait HalApi: wgpu_hal::Api {
+        use wgpu_types::Backend;
+        pub trait HalApi: crate::hal::Api {
             const VARIANT: Backend;
             fn hub<'a, G: GlobalIdentityHandlerFactory>(_global: &Global<G>) -> &Hub<Self, G> {
                 todo!("weird")
             }
         }
-        impl HalApi for wgpu_hal::api::Empty {
+        impl HalApi for crate::hal::api::Empty {
             const VARIANT: Backend = Backend::Empty;
         }
 
-        impl HalApi for wgpu_hal::api::Metal {
+        impl HalApi for crate::hal::api::Metal {
             const VARIANT: Backend = Backend::Metal;
             fn hub<G: GlobalIdentityHandlerFactory>(global: &Global<G>) -> &Hub<Self, G> {
                 &global.hubs.metal
             }
         }
 
-        impl HalApi for wgpu_hal::api::Gles {
+        impl HalApi for crate::hal::api::Gles {
             const VARIANT: Backend = Backend::Gl;
         }
     }
@@ -221,7 +222,7 @@ pub mod core {
             }
         }
         pub(crate) struct Hubs<F: GlobalIdentityHandlerFactory> {
-            pub(crate) metal: Hub<wgpu_hal::api::Metal, F>,
+            pub(crate) metal: Hub<crate::hal::api::Metal, F>,
         }
         impl<F: GlobalIdentityHandlerFactory> Hubs<F> {
             pub(crate) fn new(factory: &F) -> Self {
@@ -236,7 +237,7 @@ pub mod core {
         use crate::core::Index;
         use std::fmt;
         use std::marker::PhantomData;
-        use wgpu_hal::wgt::Backend;
+        use wgpu_types::Backend;
 
         type IdType = u64;
 
@@ -248,7 +249,7 @@ pub mod core {
         const BACKEND_BITS: usize = 3;
         const BACKEND_SHIFT: usize = INDEX_BITS * 2 - BACKEND_BITS;
         pub const EPOCH_MASK: u32 = (1 << (EPOCH_BITS)) - 1;
-        type Dummy = wgpu_hal::api::Empty;
+        type Dummy = crate::hal::api::Empty;
         #[repr(transparent)]
         pub struct Id<T>(NonZeroId, PhantomData<T>);
         impl<T> Id<T> {
@@ -316,7 +317,7 @@ pub mod core {
         use crate::core::Index;
         use parking_lot::Mutex;
         use std::fmt::Debug;
-        use wgpu_hal::wgt::Backend;
+        use wgpu_types::Backend;
         #[derive(Debug, Default)]
         pub struct IdentityManager {
             free: Vec<Index>,
@@ -385,10 +386,10 @@ pub mod core {
         use crate::core::identity::Input;
         use crate::core::LabelHelpers;
         use thiserror::Error;
-        use wgpu_hal::wgt::Backend;
-        use wgpu_hal::wgt::Backends;
+        use wgpu_types::Backend;
+        use wgpu_types::Backends;
         pub struct Surface {}
-        pub struct Adapter<A: wgpu_hal::Api> {
+        pub struct Adapter<A: crate::hal::Api> {
             _marker: std::marker::PhantomData<A>,
         }
         impl<A: HalApi> Adapter<A> {
@@ -458,8 +459,8 @@ pub mod core {
             ) -> Result<AdapterId, RequestAdapterError> {
                 let mut token = Token::root();
                 let (_, _) = self.surfaces.read(&mut token);
-                let id_metal = inputs.find(wgpu_hal::api::Metal::VARIANT);
-                if let Some(id) = self.select::<wgpu_hal::api::Metal>(id_metal) {
+                let id_metal = inputs.find(crate::hal::api::Metal::VARIANT);
+                if let Some(id) = self.select::<crate::hal::api::Metal>(id_metal) {
                     return Ok(id);
                 }
                 Err(RequestAdapterError::NotFound)
@@ -503,7 +504,7 @@ pub mod core {
         use parking_lot::RwLock;
         use parking_lot::RwLockReadGuard;
         use std::marker::PhantomData;
-        use wgpu_hal::wgt::Backend;
+        use wgpu_types::Backend;
         #[derive(Debug)]
         pub(crate) struct Registry<T, I: id::TypedId, F: IdentityHandlerFactory<I>> {
             identity: F::Filter,
@@ -577,9 +578,9 @@ pub mod core {
         use crate::core::Label;
         use thiserror::Error;
         pub type TextureDescriptor<'a> =
-            wgpu_hal::wgt::TextureDescriptor<Label<'a>, Vec<wgpu_hal::wgt::TextureFormat>>;
+            wgpu_types::TextureDescriptor<Label<'a>, Vec<wgpu_types::TextureFormat>>;
         #[derive(Debug)]
-        pub struct Texture<A: wgpu_hal::Api> {
+        pub struct Texture<A: crate::hal::Api> {
             _marker: std::marker::PhantomData<A>,
         }
         #[derive(Clone, Debug, Error)]
@@ -630,8 +631,8 @@ pub mod core {
             }
         }
     }
+    pub use crate::hal::api;
     use std::borrow::Cow;
-    pub use wgpu_hal::api;
     type Index = u32;
     type Epoch = u32;
     pub type Label<'a> = Option<Cow<'a, str>>;
@@ -652,4 +653,67 @@ pub mod core {
     define_backend_caller! { gfx_if_gles , gfx_if_gles_hidden , "gles" if feature = "gles" }
     #[macro_export]
     macro_rules ! gfx_select { ($ id : expr => $ global : ident .$ method : ident ($ ($ param : expr) , *)) => { match $ id . backend () { wgc::hal :: wgt :: Backend :: Metal => $ crate :: gfx_if_metal ! ($ global .$ method ::< $ crate :: api :: Metal > ($ ($ param) , *)) , wgc::hal :: wgt :: Backend :: Gl => $ crate :: gfx_if_gles ! ($ global .$ method ::< $ crate :: api :: Gles > ($ ($ param) , +)) , other => panic ! ("Unexpected backend {:?}" , other) , } } ; }
+}
+
+mod hal {
+    pub(crate) mod empty {
+        #[derive(Clone)]
+        pub struct Api;
+        pub struct Context;
+        impl crate::hal::Api for Api {
+            type Instance = Context;
+        }
+        impl crate::hal::Instance<Api> for Context {}
+    }
+
+    pub(crate) mod gles {
+        mod egl {
+            pub struct Instance {}
+            impl crate::hal::Instance<super::Api> for Instance {}
+        }
+        use self::egl::Instance;
+        #[derive(Clone)]
+        pub struct Api;
+        impl crate::hal::Api for Api {
+            type Instance = Instance;
+        }
+    }
+    pub(crate) mod metal {
+        #[derive(Clone)]
+        pub struct Api;
+        impl crate::hal::Api for Api {
+            type Instance = Instance;
+        }
+        pub struct Instance {}
+        impl crate::hal::Instance<Api> for Instance {}
+    }
+    pub mod api {
+        pub use super::empty::Api as Empty;
+        pub use super::gles::Api as Gles;
+        pub use super::metal::Api as Metal;
+    }
+    use thiserror::Error;
+    use wgpu_types::WasmNotSend;
+    use wgpu_types::WasmNotSync;
+
+    #[derive(Clone, Debug, Eq, PartialEq, Error)]
+    #[error("Not supported")]
+    pub struct InstanceError;
+    pub trait Api: Clone + Sized {
+        type Instance: Instance<Self>;
+    }
+    pub trait Instance<A: Api>: Sized + WasmNotSend + WasmNotSync {
+        unsafe fn init(_desc: &InstanceDescriptor) -> Result<Self, InstanceError> {
+            unimplemented!()
+        }
+        unsafe fn enumerate_adapters(&self) -> Vec<ExposedAdapter> {
+            unimplemented!()
+        }
+    }
+    #[derive(Clone, Debug)]
+    pub struct InstanceDescriptor<'a> {
+        pub name: &'a str,
+    }
+    #[derive(Debug)]
+    pub struct ExposedAdapter {}
 }

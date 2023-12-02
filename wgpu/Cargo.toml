@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 thiserror = "1.0.50"
 parking_lot = "0.12.1"
-wgpu-hal = { path = "../wgpu-hal" }
+wgpu-types = { path = "../wgpu-types" }
