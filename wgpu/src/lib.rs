@@ -11,21 +11,11 @@ pub fn device_create_texture(
     global: &crate::core::global::Global<crate::core::identity::IdentityManagerFactory>,
     device: &crate::core::id::DeviceId,
     desc: &TextureDescriptor,
-) -> crate::core::id::TextureId {
+) {
     let wgt_desc =
         desc.map_label_and_view_formats(|l| l.map(std::borrow::Cow::Borrowed), |v| v.to_vec());
-    let (id, _) = match device.backend() {
-        wgpu_types::Backend::Metal => {
-            global.device_create_texture::<crate::core::api::Metal>(*device, &wgt_desc, ())
-        }
-        wgpu_types::Backend::Gl => {
-            global.device_create_texture::<crate::core::api::Gles>(*device, &wgt_desc, ())
-        }
-        other => {
-            panic!("Unexpected backend {:?}", other);
-        }
-    };
-    id
+    global.device_create_texture::<crate::core::api::Metal>(*device, &wgt_desc, ());
+    global.device_create_texture::<crate::core::api::Gles>(*device, &wgt_desc, ());
 }
 
 pub mod core {
@@ -256,10 +246,7 @@ pub mod core {
             pub fn backend(self) -> Backend {
                 match self.0.get() >> (BACKEND_SHIFT) as u8 {
                     0 => Backend::Empty,
-                    1 => Backend::Vulkan,
                     2 => Backend::Metal,
-                    3 => Backend::Dx12,
-                    4 => Backend::Dx11,
                     5 => Backend::Gl,
                     _ => unreachable!(),
                 }

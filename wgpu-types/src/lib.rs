@@ -2,25 +2,15 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Backend {
     Empty = 0,
-    Vulkan = 1,
     Metal = 2,
-    Dx12 = 3,
-    Dx11 = 4,
     Gl = 5,
-    BrowserWebGpu = 6,
 }
 bitflags::bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct Backends : u32 {
-        const VULKAN = 1 << Backend::Vulkan as u32;
         const GL = 1 << Backend::Gl as u32;
         const METAL = 1 << Backend::Metal as u32;
-        const DX12 = 1 << Backend::Dx12 as u32;
-        const DX11 = 1 << Backend::Dx11 as u32;
-        const BROWSER_WEBGPU = 1 << Backend::BrowserWebGpu as u32;
-        const PRIMARY = Self::VULKAN.bits() | Self::METAL.bits() | Self::DX12.bits() | Self::BROWSER_WEBGPU.bits();
-        const SECONDARY = Self::GL.bits() | Self::DX11.bits();
     }
 }
 impl From<Backend> for Backends {
