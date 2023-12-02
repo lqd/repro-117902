@@ -7,10 +7,9 @@ fn main() {
         .request_adapter(wgpu::core::instance::AdapterInputs::Mask(
             wgpu::Backends::all(),
             |_| (),
-        ))
-        .expect("Couldn't get adapter");
+        ));
 
-    let (device_id, _) = context.adapter_request_device::<wgpu::core::api::Metal>(
+    let device_id = context.adapter_request_device::<wgpu::core::api::Metal>(
         adapter_id,
         &Default::default(),
         (),

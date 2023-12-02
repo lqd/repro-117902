@@ -14,113 +14,65 @@ pub fn device_create_texture(
 ) {
     let wgt_desc =
         desc.map_label_and_view_formats(|l| l.map(std::borrow::Cow::Borrowed), |v| v.to_vec());
-    global.device_create_texture::<crate::core::api::Metal>(*device, &wgt_desc, ());
-    global.device_create_texture::<crate::core::api::Gles>(*device, &wgt_desc, ());
+    global.device_create_texture::<crate::core::api::Metal>(*device, &wgt_desc);
 }
 
 pub mod core {
     pub(crate) mod device {
         use crate::core::Label;
-        use thiserror::Error;
         pub(crate) mod global {
-            use crate::core::device::DeviceError;
             use crate::core::global::Global;
             use crate::core::hal_api::HalApi;
             use crate::core::hub::Token;
             use crate::core::id::DeviceId;
-            use crate::core::id::{self};
             use crate::core::identity::GlobalIdentityHandlerFactory;
-            use crate::core::identity::Input;
             use crate::core::resource::{self};
-            use crate::core::LabelHelpers as _;
             impl<G: GlobalIdentityHandlerFactory> Global<G> {
                 pub fn device_create_texture<A: HalApi>(
                     &self,
                     device_id: DeviceId,
                     desc: &resource::TextureDescriptor,
-                    id_in: Input<G, id::TextureId>,
-                ) -> (id::TextureId, Option<resource::CreateTextureError>) {
+                ) {
                     let hub = A::hub(self);
                     let mut token = Token::root();
-                    let fid = hub.textures.prepare(id_in);
                     let (_, mut token) = hub.adapters.read(&mut token);
-                    let (device_guard, mut token) = hub.devices.read(&mut token);
-                    let error = loop {
-                        let device = match device_guard.get(device_id) {
-                            Ok(device) => device,
-                            Err(_) => break DeviceError::Invalid.into(),
-                        };
-                        let texture = match device.create_texture(desc) {
-                            Ok(texture) => texture,
-                            Err(error) => break error,
-                        };
-                        let id = fid.assign(texture, &mut token);
-                        return (id.0, None);
-                    };
-                    let id = fid.assign_error(desc.label.borrow_or_default(), &mut token);
-                    (id, Some(error))
+                    let (device_guard, _) = hub.devices.read(&mut token);
+                    let device = device_guard.get(device_id).unwrap();
+                    let _ = device.create_texture(desc);
+                    todo!()
                 }
             }
         }
         pub(crate) mod resource {
             use super::DeviceDescriptor;
-            use crate::core::device::MissingFeatures;
             use crate::core::hal_api::HalApi;
             use crate::core::resource::{self};
-            use thiserror::Error;
-            use wgpu_types::TextureFormat;
             pub struct Device<A: HalApi> {
                 pub(crate) features: wgpu_types::Features,
                 _marker: std::marker::PhantomData<A>,
             }
-            #[derive(Clone, Debug, Error)]
-            #[non_exhaustive]
-            pub(crate) enum CreateDeviceError {}
             impl<A: HalApi> Device<A> {
-                pub(crate) fn require_features(
-                    &self,
-                    feature: wgpu_types::Features,
-                ) -> Result<(), MissingFeatures> {
-                    if self.features.contains(feature) {
-                        Ok(())
-                    } else {
-                        unimplemented!()
-                    }
-                }
-            }
-            impl<A: HalApi> Device<A> {
-                pub(crate) fn new(desc: &DeviceDescriptor) -> Result<Self, CreateDeviceError> {
-                    Ok(Self {
+                #[inline(always)]
+                pub(crate) fn new(desc: &DeviceDescriptor) -> Self {
+                    Self {
                         features: desc.features,
                         _marker: std::marker::PhantomData,
-                    })
+                    }
                 }
+                #[inline(never)]
                 pub(super) fn create_texture(
                     &self,
                     desc: &resource::TextureDescriptor,
-                ) -> Result<resource::Texture<A>, resource::CreateTextureError> {
-                    let _format_features = self.describe_format_features(desc.format);
+                ) -> resource::Texture<A> {
+                    let format = desc.format;
+                    std::hint::black_box(format.required_features());
+                    format.guaranteed_format_features(self.features);
                     todo!()
-                }
-                pub(super) fn describe_format_features(
-                    &self,
-                    format: TextureFormat,
-                ) -> Result<wgpu_types::TextureFormatFeatures, MissingFeatures> {
-                    self.require_features(format.required_features())?;
-                    Ok(format.guaranteed_format_features(self.features))
                 }
             }
         }
         pub(crate) use resource::Device;
         pub(crate) type DeviceDescriptor<'a> = wgpu_types::DeviceDescriptor<Label<'a>>;
-        #[derive(Clone, Debug, Error)]
-        pub enum DeviceError {
-            #[error("Parent device is invalid")]
-            Invalid,
-        }
-        #[derive(Clone, Debug, Error)]
-        #[error("Features {0:?} are required but not enabled on the device")]
-        pub struct MissingFeatures(pub wgpu_types::Features);
     }
     pub mod global {
         use crate::core::hub::Hubs;
@@ -200,14 +152,12 @@ pub mod core {
         pub struct Hub<A: HalApi, F: GlobalIdentityHandlerFactory> {
             pub(crate) adapters: Registry<Adapter<A>, id::AdapterId, F>,
             pub(crate) devices: Registry<Device<A>, id::DeviceId, F>,
-            pub(crate) textures: Registry<Texture<A>, id::TextureId, F>,
         }
         impl<A: HalApi, F: GlobalIdentityHandlerFactory> Hub<A, F> {
             fn new(factory: &F) -> Self {
                 Self {
                     adapters: Registry::new(A::VARIANT, factory),
                     devices: Registry::new(A::VARIANT, factory),
-                    textures: Registry::new(A::VARIANT, factory),
                 }
             }
         }
@@ -371,8 +321,6 @@ pub mod core {
         use crate::core::id::DeviceId;
         use crate::core::identity::GlobalIdentityHandlerFactory;
         use crate::core::identity::Input;
-        use crate::core::LabelHelpers;
-        use thiserror::Error;
         use wgpu_types::Backend;
         use wgpu_types::Backends;
         pub struct Surface {}
@@ -385,26 +333,19 @@ pub mod core {
                     _marker: std::marker::PhantomData,
                 }
             }
+            #[inline(always)]
             fn create_device_from_hal(
                 &self,
                 desc: &DeviceDescriptor,
-            ) -> Result<Device<A>, RequestDeviceError> {
-                Device::new(desc).or(Err(RequestDeviceError::OutOfMemory))
+            ) -> Device<A> {
+                Device::new(desc)
             }
             pub(crate) fn create_device(
                 &self,
                 desc: &DeviceDescriptor,
-            ) -> Result<Device<A>, RequestDeviceError> {
+            ) -> Device<A> {
                 self.create_device_from_hal(desc)
             }
-        }
-        #[derive(Clone, Debug, Error)]
-        #[non_exhaustive]
-        pub enum RequestDeviceError {
-            #[error("Parent adapter is invalid")]
-            InvalidAdapter,
-            #[error("Not enough memory left")]
-            OutOfMemory,
         }
         pub enum AdapterInputs<'a, I> {
             IdSet(&'a [I], fn(&I) -> Backend),
@@ -424,12 +365,6 @@ pub mod core {
                 }
             }
         }
-        #[derive(Clone, Debug, Error)]
-        #[non_exhaustive]
-        pub enum RequestAdapterError {
-            #[error("No suitable adapter found")]
-            NotFound,
-        }
         impl<G: GlobalIdentityHandlerFactory> Global<G> {
             fn select<A: HalApi>(&self, new_id: Option<Input<G, AdapterId>>) -> Option<AdapterId> {
                 let mut token = Token::root();
@@ -443,14 +378,11 @@ pub mod core {
             pub fn request_adapter(
                 &self,
                 inputs: AdapterInputs<Input<G, AdapterId>>,
-            ) -> Result<AdapterId, RequestAdapterError> {
+            ) -> AdapterId {
                 let mut token = Token::root();
                 let (_, _) = self.surfaces.read(&mut token);
                 let id_metal = inputs.find(crate::hal::api::Metal::VARIANT);
-                if let Some(id) = self.select::<crate::hal::api::Metal>(id_metal) {
-                    return Ok(id);
-                }
-                Err(RequestAdapterError::NotFound)
+                self.select::<crate::hal::api::Metal>(id_metal).unwrap()
             }
         }
         impl<G: GlobalIdentityHandlerFactory> Global<G> {
@@ -459,25 +391,15 @@ pub mod core {
                 adapter_id: AdapterId,
                 desc: &DeviceDescriptor,
                 id_in: Input<G, DeviceId>,
-            ) -> (DeviceId, Option<RequestDeviceError>) {
+            ) -> DeviceId {
                 let hub = A::hub(self);
                 let mut token = Token::root();
                 let fid = hub.devices.prepare(id_in);
-                let error = loop {
-                    let (adapter_guard, mut token) = hub.adapters.read(&mut token);
-                    let adapter = match adapter_guard.get(adapter_id) {
-                        Ok(adapter) => adapter,
-                        Err(_) => break RequestDeviceError::InvalidAdapter,
-                    };
-                    let device = match adapter.create_device(desc) {
-                        Ok(device) => device,
-                        Err(e) => break e,
-                    };
-                    let id = fid.assign(device, &mut token);
-                    return (id.0, None);
-                };
-                let id = fid.assign_error(desc.label.borrow_or_default(), &mut token);
-                (id, Some(error))
+                let (adapter_guard, mut token) = hub.adapters.read(&mut token);
+                let adapter = adapter_guard.get(adapter_id).unwrap();
+                let device = adapter.create_device(desc);
+                let id = fid.assign(device, &mut token);
+                id.0
             }
         }
     }
@@ -534,13 +456,6 @@ pub mod core {
                 self.data.write().insert(self.id, value);
                 id::Valid(self.id)
             }
-            pub(crate) fn assign_error<'a, A: Access<T>>(
-                self,
-                _label: &str,
-                _: &'a mut Token<A>,
-            ) -> I {
-                unimplemented!()
-            }
         }
         impl<T, I: id::TypedId + Copy, F: IdentityHandlerFactory<I>> Registry<T, I, F> {
             pub(crate) fn prepare(
@@ -561,20 +476,12 @@ pub mod core {
         }
     }
     pub mod resource {
-        use crate::core::device::DeviceError;
         use crate::core::Label;
-        use thiserror::Error;
         pub type TextureDescriptor<'a> =
             wgpu_types::TextureDescriptor<Label<'a>, Vec<wgpu_types::TextureFormat>>;
         #[derive(Debug)]
         pub struct Texture<A: crate::hal::Api> {
             _marker: std::marker::PhantomData<A>,
-        }
-        #[derive(Clone, Debug, Error)]
-        #[non_exhaustive]
-        pub enum CreateTextureError {
-            #[error(transparent)]
-            Device(#[from] DeviceError),
         }
     }
     pub(crate) mod storage {
@@ -674,23 +581,13 @@ mod hal {
         pub use super::gles::Api as Gles;
         pub use super::metal::Api as Metal;
     }
-    use thiserror::Error;
     use wgpu_types::WasmNotSend;
     use wgpu_types::WasmNotSync;
 
-    #[derive(Clone, Debug, Eq, PartialEq, Error)]
-    #[error("Not supported")]
-    pub struct InstanceError;
     pub trait Api: Clone + Sized {
         type Instance: Instance<Self>;
     }
     pub trait Instance<A: Api>: Sized + WasmNotSend + WasmNotSync {
-        fn init(_desc: &InstanceDescriptor) -> Result<Self, InstanceError> {
-            unimplemented!()
-        }
-        fn enumerate_adapters(&self) -> Vec<ExposedAdapter> {
-            unimplemented!()
-        }
     }
     #[derive(Clone, Debug)]
     pub struct InstanceDescriptor<'a> {
