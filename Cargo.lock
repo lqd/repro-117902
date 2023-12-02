@@ -152,14 +152,6 @@ checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 name = "wgpu"
 version = "0.1.0"
 dependencies = [
- "wgpu-core",
- "wgpu-hal",
-]
-
-[[package]]
-name = "wgpu-core"
-version = "0.1.0"
-dependencies = [
  "parking_lot",
  "thiserror",
  "wgpu-hal",
