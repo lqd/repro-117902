@@ -703,10 +703,10 @@ mod hal {
         type Instance: Instance<Self>;
     }
     pub trait Instance<A: Api>: Sized + WasmNotSend + WasmNotSync {
-        unsafe fn init(_desc: &InstanceDescriptor) -> Result<Self, InstanceError> {
+        fn init(_desc: &InstanceDescriptor) -> Result<Self, InstanceError> {
             unimplemented!()
         }
-        unsafe fn enumerate_adapters(&self) -> Vec<ExposedAdapter> {
+        fn enumerate_adapters(&self) -> Vec<ExposedAdapter> {
             unimplemented!()
         }
     }
