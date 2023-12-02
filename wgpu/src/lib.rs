@@ -149,7 +149,7 @@ pub mod core {
         pub trait HalApi: crate::hal::Api {
             const VARIANT: Backend;
             fn hub<'a, G: GlobalIdentityHandlerFactory>(_global: &Global<G>) -> &Hub<Self, G> {
-                todo!("weird")
+                unimplemented!()
             }
         }
         impl HalApi for crate::hal::api::Empty {
@@ -635,11 +635,6 @@ pub mod core {
             unimplemented!()
         }
     }
-    macro_rules ! define_backend_caller { { $ public : ident , $ private : ident , $ feature : literal if $ cfg : meta } => {  # [macro_export] macro_rules ! $ private { ($ call : expr) => ($ call) } # [doc (hidden)] pub use $ private as $ public ; } }
-    define_backend_caller! { gfx_if_metal , gfx_if_metal_hidden , "metal" if all (feature = "metal" , any (target_os = "macos" , target_os = "ios")) }
-    define_backend_caller! { gfx_if_gles , gfx_if_gles_hidden , "gles" if feature = "gles" }
-    #[macro_export]
-    macro_rules ! gfx_select { ($ id : expr => $ global : ident .$ method : ident ($ ($ param : expr) , *)) => { match $ id . backend () { wgc::hal :: wgt :: Backend :: Metal => $ crate :: gfx_if_metal ! ($ global .$ method ::< $ crate :: api :: Metal > ($ ($ param) , *)) , wgc::hal :: wgt :: Backend :: Gl => $ crate :: gfx_if_gles ! ($ global .$ method ::< $ crate :: api :: Gles > ($ ($ param) , +)) , other => panic ! ("Unexpected backend {:?}" , other) , } } ; }
 }
 
 mod hal {
