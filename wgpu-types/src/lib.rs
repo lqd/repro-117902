@@ -10,8 +10,8 @@ pub enum Backend {
     BrowserWebGpu = 6,
 }
 bitflags::bitflags! {
-    # [repr(transparent)]
-    # [derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[repr(transparent)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct Backends : u32 {
         const VULKAN = 1 << Backend::Vulkan as u32;
         const GL = 1 << Backend::Gl as u32;
@@ -29,9 +29,8 @@ impl From<Backend> for Backends {
     }
 }
 bitflags::bitflags! {
-    # [repr (transparent)]
-    # [derive (Default)]
-    # [derive (Debug , Copy , Clone , PartialEq , Eq , Hash)]
+    #[repr(transparent)]
+    #[derive(Default, Debug , Copy , Clone , PartialEq , Eq , Hash)]
     pub struct Features : u64 {
         const DEPTH_CLIP_CONTROL = 1 << 0;
         const TIMESTAMP_QUERY = 1 << 1;
@@ -288,10 +287,7 @@ impl Default for InstanceDescriptor {
         }
     }
 }
-pub use send_sync::*;
-mod send_sync {
-    pub trait WasmNotSend: Send {}
-    impl<T: Send> WasmNotSend for T {}
-    pub trait WasmNotSync: Sync {}
-    impl<T: Sync> WasmNotSync for T {}
-}
+pub trait WasmNotSend: Send {}
+impl<T: Send> WasmNotSend for T {}
+pub trait WasmNotSync: Sync {}
+impl<T: Sync> WasmNotSync for T {}
