@@ -13,6 +13,7 @@ name = "repro-117902"
 version = "0.1.0"
 dependencies = [
  "wgpu",
+ "wgpu-types",
 ]
 
 [[package]]

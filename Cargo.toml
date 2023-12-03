@@ -12,6 +12,7 @@ members = [
 
 [dependencies]
 wgpu = { path = "./wgpu" }
+wgpu-types = { path = "./wgpu-types" }
 
 # [profile.release]
 # debug = true
