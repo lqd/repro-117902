@@ -1,7 +1,6 @@
 pub use wgpu_types::Backends;
 pub use wgpu_types::TextureFormat;
 
-pub type Label<'a> = Option<&'a str>;
 pub type TextureDescriptor = wgpu_types::TextureDescriptor;
 
 pub fn device_create_texture(
@@ -14,7 +13,6 @@ pub fn device_create_texture(
 
 pub mod core {
     pub(crate) mod device {
-        use crate::core::Label;
         pub(crate) mod global {
             use crate::core::global::Global;
             use crate::core::hal_api::HalApi;
@@ -67,22 +65,18 @@ pub mod core {
             }
         }
         pub(crate) use resource::Device;
-        pub(crate) type DeviceDescriptor<'a> = wgpu_types::DeviceDescriptor<Label<'a>>;
+        pub(crate) type DeviceDescriptor = wgpu_types::DeviceDescriptor;
     }
     pub mod global {
         use crate::core::hub::Hubs;
-        use crate::core::id;
         use crate::core::identity::GlobalIdentityHandlerFactory;
-        use crate::core::instance::Surface;
-        use crate::core::registry::Registry;
         pub struct Global<G: GlobalIdentityHandlerFactory> {
-            pub(crate) surfaces: Registry<Surface, id::SurfaceId, G>,
+            //pub(crate) surfaces: Registry<Surface, id::SurfaceId, G>,
             pub(crate) hubs: Hubs<G>,
         }
         impl<G: GlobalIdentityHandlerFactory> Global<G> {
             pub fn new(factory: G) -> Self {
                 Self {
-                    surfaces: Registry::without_backend(&factory),
                     hubs: Hubs::new(&factory),
                 }
             }
@@ -228,7 +222,7 @@ pub mod core {
             }
         }
         pub type AdapterId = Id<crate::core::instance::Adapter<Dummy>>;
-        pub type SurfaceId = Id<crate::core::instance::Surface>;
+        //pub type SurfaceId = Id<crate::core::instance::Surface>;
         pub type DeviceId = Id<crate::core::device::Device<Dummy>>;
         pub type TextureId = Id<crate::core::resource::Texture<Dummy>>;
     }
@@ -286,7 +280,6 @@ pub mod core {
             IdentityHandlerFactory<id::AdapterId>
             + IdentityHandlerFactory<id::DeviceId>
             + IdentityHandlerFactory<id::TextureId>
-            + IdentityHandlerFactory<id::SurfaceId>
         {
         }
         impl GlobalIdentityHandlerFactory for IdentityManagerFactory {}
@@ -361,8 +354,6 @@ pub mod core {
                 &self,
                 inputs: AdapterInputs<Input<G, AdapterId>>,
             ) -> AdapterId {
-                let mut token = Token::root();
-                let (_, _) = self.surfaces.read(&mut token);
                 let id_metal = inputs.find(crate::hal::api::Metal::VARIANT);
                 self.select::<crate::hal::api::Metal>(id_metal).unwrap()
             }
@@ -410,16 +401,6 @@ pub mod core {
                         _phantom: PhantomData,
                     }),
                     backend,
-                }
-            }
-            pub(crate) fn without_backend(factory: &F) -> Self {
-                Self {
-                    identity: factory.spawn(),
-                    data: RwLock::new(Storage {
-                        map: Vec::new(),
-                        _phantom: PhantomData,
-                    }),
-                    backend: Backend::Empty,
                 }
             }
         }
@@ -498,10 +479,8 @@ pub mod core {
         }
     }
     pub use crate::hal::api;
-    use std::borrow::Cow;
     type Index = u32;
     type Epoch = u32;
-    pub type Label<'a> = Option<Cow<'a, str>>;
 }
 
 mod hal {

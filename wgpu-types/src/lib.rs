@@ -1,5 +1,4 @@
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Backend {
     Empty = 0,
     Metal = 2,
@@ -7,9 +6,8 @@ pub enum Backend {
 }
 bitflags::bitflags! {
     #[repr(transparent)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    #[derive(Copy, Clone, PartialEq, Eq, )]
     pub struct Backends : u32 {
-        const GL = 1 << Backend::Gl as u32;
         const METAL = 1 << Backend::Metal as u32;
     }
 }
@@ -20,7 +18,7 @@ impl From<Backend> for Backends {
 }
 bitflags::bitflags! {
     #[repr(transparent)]
-    #[derive(Default, Debug , Copy , Clone , PartialEq , Eq , Hash)]
+    #[derive(Default, Copy , Clone , PartialEq , Eq , )]
     pub struct Features : u64 {
         const DEPTH_CLIP_CONTROL = 1 << 0;
         const TIMESTAMP_QUERY = 1 << 1;
@@ -62,28 +60,22 @@ bitflags::bitflags! {
         const SHADER_EARLY_DEPTH_TEST = 1 << 62;
     }
 }
-#[repr(C)]
-#[derive(Clone, Debug, Default)]
-pub struct DeviceDescriptor<L> {
-    pub label: L,
+#[derive(Clone, Default)]
+pub struct DeviceDescriptor {
     pub features: Features,
 }
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct TextureFormatFeatures {}
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum AstcBlock {
     B12x12,
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum AstcChannel {
     Unorm,
-    UnormSrgb,
     Hdr,
 }
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum TextureFormat {
     Rgba8UnormSrgb, //
     Rgba8Snorm,
@@ -194,11 +186,11 @@ impl TextureFormat {
             | Self::EacRg11Snorm => Features::TEXTURE_COMPRESSION_ETC2,
             Self::Astc { channel, .. } => match channel {
                 AstcChannel::Hdr => Features::TEXTURE_COMPRESSION_ASTC_HDR,
-                AstcChannel::Unorm | AstcChannel::UnormSrgb => Features::TEXTURE_COMPRESSION_ASTC,
+                AstcChannel::Unorm  => Features::TEXTURE_COMPRESSION_ASTC,
             },
         }
     }
-    pub fn guaranteed_format_features(&self, _device_features: Features) -> TextureFormatFeatures {
+    pub fn guaranteed_format_features(&self, _device_features: Features) {
         unimplemented!()
     }
 }
