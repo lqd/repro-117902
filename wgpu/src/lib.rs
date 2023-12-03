@@ -1,20 +1,15 @@
 pub use wgpu_types::Backends;
-pub use wgpu_types::TextureDimension;
 pub use wgpu_types::TextureFormat;
-pub use wgpu_types::TextureUsages;
 
 pub type Label<'a> = Option<&'a str>;
-pub type TextureDescriptor<'a> =
-    wgpu_types::TextureDescriptor<Label<'a>, &'a [wgpu_types::TextureFormat]>;
+pub type TextureDescriptor = wgpu_types::TextureDescriptor;
 
 pub fn device_create_texture(
     global: &crate::core::global::Global<crate::core::identity::IdentityManagerFactory>,
     device: &crate::core::id::DeviceId,
     desc: &TextureDescriptor,
 ) {
-    let wgt_desc =
-        desc.map_label_and_view_formats(|l| l.map(std::borrow::Cow::Borrowed), |v| v.to_vec());
-    global.device_create_texture::<crate::core::api::Metal>(*device, &wgt_desc);
+    global.device_create_texture::<crate::core::api::Metal>(*device, desc);
 }
 
 pub mod core {
@@ -85,7 +80,7 @@ pub mod core {
             pub(crate) hubs: Hubs<G>,
         }
         impl<G: GlobalIdentityHandlerFactory> Global<G> {
-            pub fn new(factory: G, _instance_desc: wgpu_types::InstanceDescriptor) -> Self {
+            pub fn new(factory: G) -> Self {
                 Self {
                     surfaces: Registry::without_backend(&factory),
                     hubs: Hubs::new(&factory),
@@ -462,9 +457,7 @@ pub mod core {
         }
     }
     pub mod resource {
-        use crate::core::Label;
-        pub type TextureDescriptor<'a> =
-            wgpu_types::TextureDescriptor<Label<'a>, Vec<wgpu_types::TextureFormat>>;
+        pub type TextureDescriptor = wgpu_types::TextureDescriptor;
         pub struct Texture<A: crate::hal::Api> {
             _marker: std::marker::PhantomData<A>,
         }
