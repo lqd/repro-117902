@@ -3,14 +3,4 @@ name = "repro-117902"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-resolver = "2"
-members = [
-    "wgpu",
-]
-
 [dependencies]
-wgpu = { path = "./wgpu" }
-
-# [profile.release]
-# debug = true

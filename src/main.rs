@@ -1,9 +1,9 @@
 fn main() {
-    let texture_descriptor = wgpu::TextureDescriptor {
+    let texture_descriptor = repro_117902::TextureDescriptor {
         ballast: [0u64; 4096],
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        format: repro_117902::TextureFormat::Rgba8UnormSrgb,
     };
 
-    let context = wgpu::Global;
-    wgpu::device_create_texture(&context, &texture_descriptor);
+    let context = repro_117902::Global;
+    repro_117902::device_create_texture(&context, &texture_descriptor);
 }

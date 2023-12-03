@@ -5,10 +5,3 @@ version = 3
 [[package]]
 name = "repro-117902"
 version = "0.1.0"
-dependencies = [
- "wgpu",
-]
-
-[[package]]
-name = "wgpu"
-version = "0.1.0"
