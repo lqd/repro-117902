@@ -7,12 +7,10 @@ edition = "2021"
 resolver = "2"
 members = [
     "wgpu",
-    "wgpu-types",
 ]
 
 [dependencies]
 wgpu = { path = "./wgpu" }
-wgpu-types = { path = "./wgpu-types" }
 
 # [profile.release]
 # debug = true
