@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Backend {
     Empty = 0,
     Metal = 2,
@@ -6,7 +6,7 @@ pub enum Backend {
 }
 bitflags::bitflags! {
     #[repr(transparent)]
-    #[derive(Copy, Clone, PartialEq, Eq, )]
+    #[derive(Copy, Clone)]
     pub struct Backends : u32 {
         const METAL = 1 << Backend::Metal as u32;
     }
@@ -18,7 +18,7 @@ impl From<Backend> for Backends {
 }
 bitflags::bitflags! {
     #[repr(transparent)]
-    #[derive(Default, Copy , Clone , PartialEq , Eq , )]
+    #[derive(Default, Copy , Clone)]
     pub struct Features : u64 {
         const DEPTH_CLIP_CONTROL = 1 << 0;
         const TIMESTAMP_QUERY = 1 << 1;
@@ -65,17 +65,17 @@ pub struct DeviceDescriptor {
     pub features: Features,
 }
 #[repr(C)]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum AstcBlock {
     B12x12,
 }
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum AstcChannel {
     Unorm,
     Hdr,
 }
 #[repr(C)]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TextureFormat {
     Rgba8UnormSrgb, //
     Rgba8Snorm,
@@ -186,7 +186,7 @@ impl TextureFormat {
             | Self::EacRg11Snorm => Features::TEXTURE_COMPRESSION_ETC2,
             Self::Astc { channel, .. } => match channel {
                 AstcChannel::Hdr => Features::TEXTURE_COMPRESSION_ASTC_HDR,
-                AstcChannel::Unorm  => Features::TEXTURE_COMPRESSION_ASTC,
+                AstcChannel::Unorm => Features::TEXTURE_COMPRESSION_ASTC,
             },
         }
     }
@@ -196,6 +196,6 @@ impl TextureFormat {
 }
 pub struct TextureDescriptor {
     pub ballast: [u64; 4096], // Something big that comes first in layout.
-                              // repr(C) or big alignment works.
+    // repr(C) or big alignment works.
     pub format: TextureFormat,
 }
