@@ -202,82 +202,8 @@ impl TextureFormat {
         unimplemented!()
     }
 }
-bitflags::bitflags! {
-    #[repr(transparent)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub struct TextureUsages : u32 {
-        const COPY_SRC = 1 << 0 ;
-        const COPY_DST = 1 << 1 ;
-        const TEXTURE_BINDING = 1 << 2 ;
-        const STORAGE_BINDING = 1 << 3 ;
-        const RENDER_ATTACHMENT = 1 << 4 ;
-    }
-}
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub enum TextureDimension {
-    D2,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct Extent3d {
-    pub width: u32,
-    pub height: u32,
-    pub depth_or_array_layers: u32,
-}
-impl Default for Extent3d {
-    fn default() -> Self {
-        Self {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 1,
-        }
-    }
-}
-#[repr(C)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TextureDescriptor<L, V> {
-    pub label: L,
-    pub size: Extent3d,
-    pub mip_level_count: u32,
-    pub sample_count: u32,
-    pub dimension: TextureDimension,
+pub struct TextureDescriptor {
+    pub ballast: [u64; 4096], // Something big that comes first in layout.
+                              // repr(C) or big alignment works.
     pub format: TextureFormat,
-    pub usage: TextureUsages,
-    pub view_formats: V,
 }
-impl<L, V> TextureDescriptor<L, V> {
-    pub fn map_label_and_view_formats<K, M>(
-        &self,
-        l_fun: impl FnOnce(&L) -> K,
-        v_fun: impl FnOnce(V) -> M,
-    ) -> TextureDescriptor<K, M>
-    where
-        V: Clone,
-    {
-        TextureDescriptor {
-            label: l_fun(&self.label),
-            size: self.size,
-            mip_level_count: self.mip_level_count,
-            sample_count: self.sample_count,
-            dimension: self.dimension,
-            format: self.format,
-            usage: self.usage,
-            view_formats: v_fun(self.view_formats.clone()),
-        }
-    }
-}
-pub struct InstanceDescriptor {
-    pub backends: Backends,
-}
-impl Default for InstanceDescriptor {
-    fn default() -> Self {
-        Self {
-            backends: Backends::all(),
-        }
-    }
-}
-pub trait WasmNotSend: Send {}
-impl<T: Send> WasmNotSend for T {}
-pub trait WasmNotSync: Sync {}
-impl<T: Sync> WasmNotSync for T {}
